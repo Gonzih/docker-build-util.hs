@@ -67,15 +67,16 @@ make da@(DockerArgs { exe  = docker
                     , conf = dConf
                     })
      subcmd
-    | isA tagBased      = cmd [docker, subcmd, cTag]
-    | isA nameBased     = cmd [docker, subcmd, cName]
-    | subcmd == "build" = cmd [docker, "build -t", cTag, "."]
-    | subcmd == "tailf" = cmd [docker, "logs -f", cName]
-    | subcmd == "dev"   = cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag]
-    | subcmd == "shell" = cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag, "bash"]
-    | subcmd == "start" = cmd $ [docker, "run -d", "--name", cName] ++ dConf ++ [cTag]
-    | subcmd == "restart" = make da "kill" >> make da "rm" >> make da "start"
-    | otherwise         = error $ "Unknown command " ++ subcmd
+    | isA tagBased  = cmd [docker, subcmd, cTag]
+    | isA nameBased = cmd [docker, subcmd, cName]
+    | otherwise = case subcmd of
+        "build"   -> cmd [docker, "build -t", cTag, "."]
+        "tailf"   -> cmd [docker, "logs -f", cName]
+        "dev"     -> cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag]
+        "shell"   -> cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag, "bash"]
+        "start"   -> cmd $ [docker, "run -d", "--name", cName] ++ dConf ++ [cTag]
+        "restart" -> make da "kill" >> make da "rm" >> make da "start"
+        _         -> error $ "Unknown command " ++ subcmd
         where isA       = elem subcmd
               tagBased  = ["push", "pull"]
               nameBased = ["kill", "rm", "logs"]
