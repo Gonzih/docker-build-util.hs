@@ -51,30 +51,45 @@ getDockerCommand = do
     hosts <- getConf ".docker-hosts"
     return $ unwords ["docker", hosts]
 
--- | Run phony command, apply additional documentation.
-make :: Command -> Name -> Tag -> Configuration -> Command -> IO ()
-make docker _ tag _ "build"         = cmd [docker, "build -t", tag, "."]
-make docker _ tag _ "push"          = cmd [docker, "push", tag]
-make docker _ tag _ "pull"          = cmd [docker, "pull", tag]
-make docker name _ _ "kill"         = cmd [docker, "kill", name]
-make docker name _ _ "rm"           = cmd [docker, "rm", name]
-make docker name _ _ "logs"         = cmd [docker, "logs", name]
-make docker name _ _ "tailf"        = cmd [docker, "logs -f", name]
-make docker _ tag conf "dev"        = cmd $ [docker, "run -t -i"] ++ conf ++ [tag]
-make docker _ tag conf "shell"      = cmd $ [docker, "run -t -i"] ++ conf ++ [tag, "bash"]
-make docker name tag conf "start"   = cmd $ [docker, "run -d"] ++ ["--name", name] ++ conf ++ [tag]
-make docker name tag conf "restart" = make docker name tag conf "kill"
-                                   >> make docker name tag conf "rm"
-                                   >> make docker name tag conf "start"
+data DockerArgs = DockerArgs { exe    :: Command
+                             , name   :: Name
+                             , tag    :: Tag
+                             , conf   :: Configuration
+                             }
 
-make _ _ _ _ command = error $ "Unknown command " ++ command
+-- TODO: Try to refactor this with pattern guards http://www.haskell.org/haskellwiki/Pattern_guard
+-- | Run phony command, apply additional documentation.
+make :: DockerArgs -> Command -> IO ()
+make da@(DockerArgs { exe  = docker
+                    , name = cName
+                    , tag  = cTag
+                    , conf = dConf
+                    })
+     subcmd
+    | isA tagBased      = cmd [docker, subcmd, cTag]
+    | isA nameBased     = cmd [docker, subcmd, cName]
+    | subcmd == "build" = cmd [docker, "build -t", cTag, "."]
+    | subcmd == "tailf" = cmd [docker, "logs -f", cName]
+    | subcmd == "dev"   = cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag]
+    | subcmd == "shell" = cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag, "bash"]
+    | subcmd == "start" = cmd $ [docker, "run -d", "--name", cName] ++ dConf ++ [cTag]
+    | subcmd == "start" = cmd $ [docker, "run -d", "--name", cName] ++ dConf ++ [cTag]
+    | subcmd == "restart" = make da "kill" >> make da "rm" >> make da "start"
+    | otherwise         = error $ "Unknown command " ++ subcmd
+        where isA       = elem subcmd
+              tagBased  = ["push", "pull"]
+              nameBased = ["kill", "rm", "logs"]
 
 -- | Get arguments and command name. Use command name as container name.
 main :: IO ()
 main = do
-    args   <- getArgs
-    name   <- getProgName
-    conf   <- getConfiguration
-    docker <- getDockerCommand
-    let tag = "gonzih/" ++ name
-    mapM_ (make docker name tag conf) args
+    progArgs   <- getArgs
+    progName   <- getProgName
+    dockerConf <- getConfiguration
+    dockerCmd  <- getDockerCommand
+    let dockerTag = "gonzih/" ++ progName
+        dockerArgs = DockerArgs { exe  = dockerCmd
+                                , name = progName
+                                , tag  = dockerTag
+                                , conf = dockerConf }
+    mapM_ (make dockerArgs) progArgs
