@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad (liftM)
+import Control.Applicative ((<*>), (<$>))
 import System.Directory (getCurrentDirectory, doesFileExist)
 import System.Environment (getArgs, getProgName)
 import System.FilePath ((</>))
@@ -84,12 +85,9 @@ make da@(DockerArgs { exe  = docker
 main :: IO ()
 main = do
     progArgs   <- getArgs
-    progName   <- getProgName
-    dockerConf <- getConfiguration
-    dockerCmd  <- getDockerCommand
-    let dockerTag = "gonzih/" ++ progName
-        dockerArgs = DockerArgs { exe  = dockerCmd
-                                , name = progName
-                                , tag  = dockerTag
-                                , conf = dockerConf }
+    dockerArgs <- DockerArgs <$> getDockerCommand
+                             <*> getProgName
+                             <*> getTag
+                             <*> getConfiguration
     mapM_ (make dockerArgs) progArgs
+    where getTag = liftM ("gonzih/" ++) getProgName
