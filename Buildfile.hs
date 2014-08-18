@@ -74,7 +74,6 @@ make da@(DockerArgs { exe  = docker
     | subcmd == "dev"   = cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag]
     | subcmd == "shell" = cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag, "bash"]
     | subcmd == "start" = cmd $ [docker, "run -d", "--name", cName] ++ dConf ++ [cTag]
-    | subcmd == "start" = cmd $ [docker, "run -d", "--name", cName] ++ dConf ++ [cTag]
     | subcmd == "restart" = make da "kill" >> make da "rm" >> make da "start"
     | otherwise         = error $ "Unknown command " ++ subcmd
         where isA       = elem subcmd
