@@ -84,10 +84,9 @@ make da@(DockerArgs { exe  = docker
 -- | Get arguments and command name. Use command name as container name.
 main :: IO ()
 main = do
-    progArgs   <- getArgs
     dockerArgs <- DockerArgs <$> getDockerCommand
                              <*> getProgName
                              <*> getTag
                              <*> getConfiguration
-    mapM_ (make dockerArgs) progArgs
+    mapM_ (make dockerArgs) =<< getArgs
     where getTag = liftM ("gonzih/" ++) getProgName
