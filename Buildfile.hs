@@ -74,7 +74,7 @@ make da@(DockerArgs { exe  = docker
         "tailf"   -> cmd [docker, "logs -f", cName]
         "dev"     -> cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag]
         "shell"   -> cmd $ [docker, "run -t -i"] ++ dConf ++ [cTag, "bash"]
-        "start"   -> cmd $ [docker, "run", "-d", "--restart=on-failure:5", "--name", cName] ++ dConf ++ [cTag]
+        "run"     -> cmd $ [docker, "run", "-d", "--restart=on-failure:5", "--name", cName] ++ dConf ++ [cTag]
         "restart" -> make da "kill" >> make da "rm" >> make da "start"
         _         -> error $ "Unknown command " ++ subcmd
         where isA       = elem subcmd
